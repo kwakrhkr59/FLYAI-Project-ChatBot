@@ -1,0 +1,8 @@
+fastapi==0.68.2
+uvicorn==0.15.0
+pydantic==1.10.17
+python-multipart==0.0.9
+# cryptography==42.0.5
+# pymysql==1.1.0
+# image==1.5.33
+# rembg==2.0.58
