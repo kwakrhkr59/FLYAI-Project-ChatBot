@@ -3,8 +3,12 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import json
+from openai import AzureOpenAI
 
 app = FastAPI()
+
+azure_oai_endpoint = "YOUR_URL" # 대상 URL
+azure_oai_key = "YOUR_AZURE_OPENAI_KEY" # 인증키1
 
 # CORS 설정
 app.add_middleware(
@@ -15,6 +19,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+client = AzureOpenAI(
+        azure_endpoint = azure_oai_endpoint, 
+        api_key=azure_oai_key,  
+        api_version="YOUR_API_VERSION"
+)
 class RequestModel(BaseModel):
     model: str
     prompt: str
@@ -29,7 +38,7 @@ async def chat(message: Message):
     url = "http://host.docker.internal:11434/api/generate"
     # 요청에 포함할 데이터
     data = {
-        "model": "llama3.2:3b",
+        "model": "llama3.2-kbo-v1.0:latest",
         "prompt": prompt
     }
     # 요청 헤더
@@ -37,7 +46,7 @@ async def chat(message: Message):
         "Content-Type": "application/json"
     }
     
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=20) as client:
         response = await client.post(url, headers=headers, data=json.dumps(data))
 
     if response.status_code == 200:
@@ -53,3 +62,15 @@ async def chat(message: Message):
     else:
         res_text = f"Error Code : {response.status_code}"
     return {"reply": res_text}
+
+@app.post("/openai")
+async def chat(message: Message):
+    prompt = message.message
+    response = client.chat.completions.create(
+        model="o1-mini",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+    generated_text = response.choices[0].message.content
+    return {"reply": generated_text}
